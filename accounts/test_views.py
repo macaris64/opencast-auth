@@ -152,6 +152,60 @@ class TestAuthenticationViews:
         
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
+    def test_user_logout_missing_refresh_token(self):
+        """
+        Given: Authenticated user without refresh token
+        When: POST to logout endpoint
+        Then: Should return bad request error
+        """
+        # Create user and authenticate
+        user = User.objects.create_user(
+            email="test2@example.com",
+            username="testuser2",
+            password="testpass123"
+        )
+        
+        refresh = RefreshToken.for_user(user)
+        access_token = str(refresh.access_token)
+        
+        # Authenticate client
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {access_token}")
+        
+        url = reverse("accounts:logout")
+        logout_data = {}  # No refresh token
+        
+        response = self.client.post(url, logout_data)
+        
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert "refresh token is required" in response.data["error"]
+
+    def test_user_logout_invalid_refresh_token(self):
+        """
+        Given: Authenticated user with invalid refresh token
+        When: POST to logout endpoint
+        Then: Should return bad request error
+        """
+        # Create user and authenticate
+        user = User.objects.create_user(
+            email="test3@example.com",
+            username="testuser3",
+            password="testpass123"
+        )
+        
+        refresh = RefreshToken.for_user(user)
+        access_token = str(refresh.access_token)
+        
+        # Authenticate client
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {access_token}")
+        
+        url = reverse("accounts:logout")
+        logout_data = {"refresh": "invalid_refresh_token"}
+        
+        response = self.client.post(url, logout_data)
+        
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert "Invalid refresh token" in response.data["error"]
+
 
 @pytest.mark.django_db
 class TestUserViewSet:
@@ -245,4 +299,82 @@ class TestUserViewSet:
         # Refresh user from database
         self.user.refresh_from_db()
         assert self.user.first_name == "Updated"
-        assert self.user.last_name == "Name" 
+        assert self.user.last_name == "Name"
+
+    def test_change_password_success(self):
+        """
+        Given: Authenticated user with valid password data
+        When: POST to change_password endpoint
+        Then: Should change password successfully
+        """
+        self.client.force_authenticate(user=self.user)
+        
+        url = reverse("accounts:user-change-password")
+        password_data = {
+            "old_password": "testpass123",
+            "new_password": "newpass123",
+            "new_password_confirm": "newpass123"
+        }
+        
+        response = self.client.post(url, password_data)
+        
+        assert response.status_code == status.HTTP_200_OK
+        assert "Password changed successfully" in response.data["message"]
+        
+        # Verify password was changed
+        self.user.refresh_from_db()
+        assert self.user.check_password("newpass123")
+
+    def test_change_password_wrong_old_password(self):
+        """
+        Given: Authenticated user with wrong old password
+        When: POST to change_password endpoint
+        Then: Should return validation error
+        """
+        self.client.force_authenticate(user=self.user)
+        
+        url = reverse("accounts:user-change-password")
+        password_data = {
+            "old_password": "wrongpass",
+            "new_password": "newpass123",
+            "new_password_confirm": "newpass123"
+        }
+        
+        response = self.client.post(url, password_data)
+        
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert "old_password" in response.data
+
+    def test_change_password_mismatch(self):
+        """
+        Given: Authenticated user with password confirmation mismatch
+        When: POST to change_password endpoint
+        Then: Should return validation error
+        """
+        self.client.force_authenticate(user=self.user)
+        
+        url = reverse("accounts:user-change-password")
+        password_data = {
+            "old_password": "testpass123",
+            "new_password": "newpass123",
+            "new_password_confirm": "differentpass"
+        }
+        
+        response = self.client.post(url, password_data)
+        
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert "new_password_confirm" in response.data
+
+    def test_get_user_organizations(self):
+        """
+        Given: Authenticated user
+        When: GET to user organizations endpoint
+        Then: Should return user's organizations
+        """
+        self.client.force_authenticate(user=self.user)
+        
+        url = reverse("accounts:user-organizations")
+        response = self.client.get(url)
+        
+        assert response.status_code == status.HTTP_200_OK
+        assert isinstance(response.data, list) 

@@ -22,50 +22,6 @@ classifiers = [
     "Framework :: Django :: 4.2",
 ]
 
-[tool.black]
-line-length = 88
-target-version = ['py311']
-include = '\.pyi?$'
-extend-exclude = '''
-/(
-  # directories
-  \.eggs
-  | \.git
-  | \.hg
-  | \.mypy_cache
-  | \.tox
-  | \.venv
-  | build
-  | dist
-  | migrations
-)/
-'''
-
-[tool.isort]
-profile = "black"
-multi_line_output = 3
-line_length = 88
-known_django = "django"
-known_first_party = ["accounts", "organizations", "cli", "opencast_auth"]
-sections = ["FUTURE", "STDLIB", "DJANGO", "THIRDPARTY", "FIRSTPARTY", "LOCALFOLDER"]
-skip_glob = ["*/migrations/*"]
-
-[tool.flake8]
-max-line-length = 88
-extend-ignore = ["E203", "W503", "E501"]
-exclude = [
-    ".git",
-    "__pycache__",
-    "*/migrations/*",
-    ".venv",
-    "build",
-    "dist"
-]
-per-file-ignores = [
-    "__init__.py:F401",
-    "settings.py:E501"
-]
-
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "opencast_auth.settings"
 python_files = ["tests.py", "test_*.py", "*_tests.py"]
@@ -113,21 +69,4 @@ exclude_lines = [
     "if __name__ == .__main__.:",
     "class .*\\bProtocol\\):",
     "@(abc\\.)?abstractmethod"
-]
-
-[tool.bandit]
-exclude_dirs = ["tests", "*/migrations/*"]
-skips = ["B101", "B601"]
-
-[tool.mypy]
-python_version = "3.11"
-check_untyped_defs = true
-ignore_missing_imports = true
-warn_unused_ignores = true
-warn_redundant_casts = true
-warn_unused_configs = true
-exclude = [
-    "migrations/",
-    "venv/",
-    ".venv/"
 ] 

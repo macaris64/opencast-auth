@@ -319,4 +319,155 @@ class OrganizationActionsTests(TestCase):
         
         assert response.status_code == status.HTTP_200_OK
         assert len(response.data) == 1  # Only owner membership
-        assert response.data[0]['user']['email'] == self.user.email 
+        assert response.data[0]['user']['email'] == self.user.email
+
+    def test_add_member_to_organization_success(self):
+        """Test adding a member to organization as owner."""
+        self.authenticate()
+        
+        # Create a new user to add
+        new_user = User.objects.create_user(
+            username="newuser",
+            email="newuser@example.com",
+            password="testpass123"
+        )
+        
+        url = reverse('organizations:organization-add-member', kwargs={'pk': self.org.pk})
+        data = {
+            "user_email": "newuser@example.com",
+            "role_name": "member",
+            "organization": self.org.pk
+        }
+        
+        response = self.client.post(url, data)
+        
+        assert response.status_code == status.HTTP_201_CREATED
+        assert Membership.objects.filter(
+            user=new_user, 
+            organization=self.org
+        ).exists()
+
+    def test_add_member_invalid_email(self):
+        """Test adding member with invalid email."""
+        self.authenticate()
+        
+        url = reverse('organizations:organization-add-member', kwargs={'pk': self.org.pk})
+        data = {
+            "user_email": "nonexistent@example.com",
+            "role_name": "member",
+            "organization": self.org.pk
+        }
+        
+        response = self.client.post(url, data)
+        
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert "user_email" in response.data
+
+    def test_add_member_as_non_admin_fails(self):
+        """Test that non-admin users cannot add members."""
+        # Create a regular member
+        regular_user = User.objects.create_user(
+            username="regular",
+            email="regular@example.com",
+            password="testpass123"
+        )
+        
+        Membership.objects.create(
+            user=regular_user,
+            organization=self.org,
+            role=self.member_role
+        )
+        
+        # Authenticate as regular member
+        refresh = RefreshToken.for_user(regular_user)
+        access_token = str(refresh.access_token)
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {access_token}")
+        
+        # Try to add a member
+        new_user = User.objects.create_user(
+            username="newuser2",
+            email="newuser2@example.com",
+            password="testpass123"
+        )
+        
+        url = reverse('organizations:organization-add-member', kwargs={'pk': self.org.pk})
+        data = {
+            "user_email": "newuser2@example.com",
+            "role_name": "member",
+            "organization": self.org.pk
+        }
+        
+        response = self.client.post(url, data)
+        
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    def test_remove_member_from_organization_success(self):
+        """Test removing a member from organization as owner."""
+        self.authenticate()
+        
+        # Create a member to remove
+        member_user = User.objects.create_user(
+            username="membertoremove",
+            email="membertoremove@example.com",
+            password="testpass123"
+        )
+        
+        member_membership = Membership.objects.create(
+            user=member_user,
+            organization=self.org,
+            role=self.member_role
+        )
+        
+        url = reverse('organizations:organization-remove-member', kwargs={'pk': self.org.pk, 'user_id': member_user.pk})
+        
+        response = self.client.delete(url)
+        
+        assert response.status_code == status.HTTP_204_NO_CONTENT
+        
+        # Check that membership is deactivated
+        member_membership.refresh_from_db()
+        assert not member_membership.is_active
+
+    def test_remove_member_as_non_admin_fails(self):
+        """Test that non-admin users cannot remove members."""
+        # Create a regular member
+        regular_user = User.objects.create_user(
+            username="regular2",
+            email="regular2@example.com",
+            password="testpass123"
+        )
+        
+        Membership.objects.create(
+            user=regular_user,
+            organization=self.org,
+            role=self.member_role
+        )
+        
+        # Authenticate as regular member
+        refresh = RefreshToken.for_user(regular_user)
+        access_token = str(refresh.access_token)
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {access_token}")
+        
+        # Try to remove the owner
+        url = reverse('organizations:organization-remove-member', kwargs={'pk': self.org.pk, 'user_id': self.user.pk})
+        
+        response = self.client.delete(url)
+        
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
+    def test_remove_nonexistent_member(self):
+        """Test removing a non-existent member."""
+        self.authenticate()
+        
+        # Create a user who is not a member
+        non_member = User.objects.create_user(
+            username="nonmember",
+            email="nonmember@example.com",
+            password="testpass123"
+        )
+        
+        url = reverse('organizations:organization-remove-member', kwargs={'pk': self.org.pk, 'user_id': non_member.pk})
+        
+        response = self.client.delete(url)
+        
+        assert response.status_code == status.HTTP_404_NOT_FOUND 
