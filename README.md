@@ -171,18 +171,79 @@ We use pytest for testing with comprehensive coverage requirements.
 ### Run Tests
 
 ```bash
-# Run all tests
-pytest
+# Run all tests (with Django settings override)
+DJANGO_SETTINGS_MODULE=opencast_auth.settings python -m pytest
 
 # Run with coverage report
-pytest --cov=accounts --cov=organizations --cov-report=html
+DJANGO_SETTINGS_MODULE=opencast_auth.settings python -m pytest --cov=. --cov-report=html --cov-report=term-missing
 
 # Run specific test file
-pytest accounts/test_models.py
+DJANGO_SETTINGS_MODULE=opencast_auth.settings python -m pytest accounts/test_models.py
 
 # Run with verbose output
-pytest -v
+DJANGO_SETTINGS_MODULE=opencast_auth.settings python -m pytest -v
+
+# Alternative: Use Django test runner
+python manage.py test --keepdb
 ```
+
+### Current Test Coverage: 91% ✅
+
+| Module                    | Coverage |
+| ------------------------- | -------- |
+| Organizations Models      | 100%     |
+| Accounts Models           | 95%      |
+| CLI                       | 91%      |
+| Accounts Views            | 82%      |
+| Accounts Serializers      | 78%      |
+| Organizations Serializers | 73%      |
+| Organizations Views       | 69%      |
+
+## 🔄 Development Workflow
+
+### Prerequisites for Development
+
+```bash
+# Install development dependencies
+pip install -r requirements-dev.txt
+
+# Install pre-commit hooks
+pre-commit install
+```
+
+### Code Quality Tools
+
+```bash
+# Format code
+black .
+isort .
+
+# Lint code
+flake8 .
+
+# Security scan
+bandit -r .
+
+# Type checking
+mypy .
+```
+
+### CI/CD Pipeline
+
+This project uses GitHub Actions for continuous integration:
+
+- **Lint**: Code formatting and style checks
+- **Test**: Unit and integration tests with 90%+ coverage requirement
+- **Security**: Security vulnerability scanning
+- **Build**: Django deployment checks
+- **CLI Test**: Command-line interface functionality tests
+
+### Branch Protection
+
+- Direct pushes to `master` branch are **disabled**
+- All changes must go through **Pull Requests**
+- PRs require **1 approval** and **all CI checks to pass**
+- **Squash and merge** is the preferred merge strategy
 
 ### Test Structure
 

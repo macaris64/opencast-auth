@@ -1,0 +1,30 @@
+# Global owners - all files require review from these users
+* @macaris64
+
+# Backend Python code
+*.py @macaris64
+/accounts/ @macaris64
+/organizations/ @macaris64
+/opencast_auth/ @macaris64
+
+# CLI module
+/cli/ @macaris64
+
+# Configuration files
+/.github/ @macaris64
+/docker-compose.yml @macaris64
+/requirements*.txt @macaris64
+/pyproject.toml @macaris64
+/.pre-commit-config.yaml @macaris64
+
+# Database migrations
+/*/migrations/ @macaris64
+
+# Documentation
+/README.md @macaris64
+/memory-bank/ @macaris64
+/scripts/ @macaris64
+
+# Environment and deployment
+/.env.example @macaris64
+/.gitignore @macaris64 
