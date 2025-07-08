@@ -62,6 +62,9 @@ pip install -r requirements.txt
 # Start PostgreSQL with Docker
 docker-compose up -d postgres
 
+# Update Django Settings
+export DJANGO_SETTINGS_MODULE=opencast_auth.settings
+
 # Run migrations
 python manage.py migrate
 
